@@ -6,10 +6,10 @@ stages:
 before_script:
   - apt-get update -y
   - apt-get install -y wget unzip
-  - wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chrome-linux64.zip
+  - wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/win64/chrome-win64.zip
   - ls
-  - unzip chrome-linux64.zip -d /opt/
-  - ln -s /opt/chrome-linux/chrome /usr/bin/chrome
+  - unzip chrome-win64.zip -d /opt/
+  - ln -s /opt/chrome-linux/chrome /usr/bin/chrome2
   - pip install -r requirements.txt
 run_python_code:
   stage: run_python_code
