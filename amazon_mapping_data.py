@@ -4,7 +4,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import WebDriverException
 from selenium import webdriver
-import chromedriver_autoinstaller
 from apify_client import ApifyClient
 from google_img_source_search import ReverseImageSearcher
 import json
