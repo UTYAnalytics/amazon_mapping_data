@@ -17,8 +17,8 @@ install_dependencies:
 run_python_code:
   stage: run
   image: python:3.9
+  dependencies:
+  - install_dependencies
   script:
     - echo "Running Python code"
     - python3 amazon_mapping_data.py
-  dependencies:
-    - install_dependencies
