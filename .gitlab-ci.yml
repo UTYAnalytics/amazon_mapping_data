@@ -6,7 +6,7 @@ stages:
 before_script:
   - apt-get update -y
   - apt-get install -y wget
-  - wget https://chromedriver.storage.googleapis.com/121.0.6167.85/chromedriver_linux64.zip
+  - wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chrome-linux64.zip
   - unzip chromedriver_linux64.zip
   - mv chromedriver /usr/local/bin/
   - chmod +x /usr/local/bin/chromedriver
