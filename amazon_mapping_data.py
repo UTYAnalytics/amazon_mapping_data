@@ -18,6 +18,7 @@ import asyncio
 import pandas as pd
 import numpy as np
 import time
+from selenium.webdriver.chrome.service import Service
 # import chromedriver_autoinstaller
 
 
@@ -236,7 +237,8 @@ def get_estimated_sales(asin):
     chrome_options.add_argument("--disable-dev-shm-usage")
     # print(chrome_options)
     # print(dir(chrome_options))
-    driver = webdriver.Chrome(executable_path=chrome_driver_path,options=chrome_options)
+    service = Service(chrome_driver_path)
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     try:
         # Navigate to the ProfitGuru website
         driver.get("https://www.profitguru.com/calculator/sales")
