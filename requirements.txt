@@ -7,4 +7,3 @@ google-image-source-search
 fuzzywuzzy
 pandas
 python-Levenshtein
-chromedriver_autoinstaller
