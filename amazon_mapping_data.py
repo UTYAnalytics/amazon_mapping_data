@@ -400,11 +400,11 @@ deal_products = get_deal_products()
 print("running")
 print("len deal products: ", len(deal_products))
 
-limit = 2
-begin = 2
-end = 4
-# begin = 0
-# end = len(deal_products)
+limit = 1
+# begin = 2
+# end = 4
+begin = 0
+end = len(deal_products)
 
 data = asyncio.run(
     run_parallel(
