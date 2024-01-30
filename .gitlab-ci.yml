@@ -29,3 +29,6 @@ run_python_code:
     - python3 amazon_mapping_data.py
   dependencies:
     - setup_dependencies
+  artifacts:
+    paths:
+      - /usr/local/bin/chromedriver
