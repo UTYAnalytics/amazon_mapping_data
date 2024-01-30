@@ -238,7 +238,7 @@ def get_estimated_sales(asin):
         # Navigate to the ProfitGuru website
         driver.get("https://www.profitguru.com/calculator/sales")
         # Input ASIN value
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, 10000)
         asin_input = wait.until(
             EC.presence_of_element_located((By.ID, "calc_asin_input"))
         )
