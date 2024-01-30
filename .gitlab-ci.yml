@@ -4,12 +4,12 @@ stages:
   - run_python_code
 
 before_script:
-  # - apt-get update -y
-  # - apt-get install -y wget
-  # - wget https://chromedriver.storage.googleapis.com/121.0.6167.85/chromedriver_linux64.zip
-  # - unzip chromedriver_linux64.zip
-  # - mv chromedriver /usr/local/bin/
-  # - chmod +x /usr/local/bin/chromedriver
+  - apt-get update -y
+  - apt-get install -y wget
+  - wget https://chromedriver.storage.googleapis.com/121.0.6167.85/chromedriver_linux64.zip
+  - unzip chromedriver_linux64.zip
+  - mv chromedriver /usr/local/bin/
+  - chmod +x /usr/local/bin/chromedriver
   - pip install -r requirements.txt
 
 run_python_code:
