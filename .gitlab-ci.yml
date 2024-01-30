@@ -1,3 +1,5 @@
+image: python:3.9
+
 stages:
   - run_python_code
 
@@ -5,6 +7,4 @@ run_python_code:
   stage: run_python_code
   script:
     - echo "Running Python code"
-    - python amazon_mapping_data.py  # Replace with the actual script name
-  # only:
-  #   - schedules
+    - python3 amazon_mapping_data.py
