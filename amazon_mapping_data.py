@@ -120,6 +120,7 @@ def search_row(row, counter, est_sales_min_threshold=10):
             "proxy": {"useApifyProxy": True},
             "reviewsEndPage": 1,
             "startUrls": image_url_search,
+            "search": product_name,
         }
 
         # Run the Actor and wait for it to finish
@@ -238,7 +239,7 @@ def get_estimated_sales(asin):
         # Navigate to the ProfitGuru website
         driver.get("https://www.profitguru.com/calculator/sales")
         # Input ASIN value
-        wait = WebDriverWait(driver, 10000)
+        wait = WebDriverWait(driver, 100)
         asin_input = wait.until(
             EC.presence_of_element_located((By.ID, "calc_asin_input"))
         )
@@ -400,7 +401,7 @@ deal_products = get_deal_products()
 print("running")
 print("len deal products: ", len(deal_products))
 
-limit = 1
+limit = 4
 # begin = 2
 # end = 4
 begin = 0
