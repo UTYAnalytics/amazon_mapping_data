@@ -229,7 +229,7 @@ def clean_columns(json_object) -> json:
 def get_estimated_sales(asin):
     # Specify the path to your webdriver executable (e.g., chromedriver.exe)
     print("get est_sales")
-    chrome_driver_path = '/usr/local/bin/chromedriver'
+    chrome_driver_path = '/amazon_mapping_data/chrome_driver/chromedriver'
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
