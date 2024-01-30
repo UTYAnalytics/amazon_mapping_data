@@ -15,19 +15,18 @@ setup_dependencies:
     # Install ChromeDriver
     - CHROMEDRIVER_VERSION=$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)
     - wget https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
-    - unzip chromedriver_linux64.zip -d /usr/local/bin/
-    - chmod +x /usr/local/bin/chromedriver
+    - unzip chromedriver_linux64.zip -d amazon_mapping_data/chrome_driver/
+    - chmod +x amazon_mapping_data/chrome_driver/chromedriver
   artifacts:
     paths:
-      - /usr/local/bin/chromedriver
+      - amazon_mapping_data/chrome_driver/chromedriver
 
 run_python_code:
   stage: run
   script:
-    - export PATH=$PATH:/usr/local/bin
+    - export PATH=$PATH:$(pwd)/amazon_mapping_data/chrome_driver
     - pip install -r requirements.txt
     - echo "Running Python code"
     - python3 amazon_mapping_data.py
   dependencies:
     - setup_dependencies
-
