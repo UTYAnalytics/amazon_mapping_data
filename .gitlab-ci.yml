@@ -12,6 +12,8 @@ setup_dependencies:
     # Install Chrome
     - wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
     - apt install -y ./google-chrome-stable_current_amd64.deb
+    # Create directory for ChromeDriver
+    - mkdir -p amazon_mapping_data/chrome_driver
     # Install ChromeDriver
     - CHROMEDRIVER_VERSION=$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)
     - wget https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
