@@ -18,7 +18,7 @@ import asyncio
 import pandas as pd
 import numpy as np
 import time
-import chromedriver_autoinstaller
+# import chromedriver_autoinstaller
 
 
 class DecimalEncoder(JSONEncoder):
@@ -389,7 +389,7 @@ def format_data(json_list):
     return data
 
 
-chromedriver_autoinstaller.install()
+# chromedriver_autoinstaller.install()
 
 SUPABASE_URL = "https://sxoqzllwkjfluhskqlfl.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4b3F6bGx3a2pmbHVoc2txbGZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDIyODE1MTcsImV4cCI6MjAxNzg1NzUxN30.FInynnvuqN8JeonrHa9pTXuQXMp9tE4LO0g5gj0adYE"
