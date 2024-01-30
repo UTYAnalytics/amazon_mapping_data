@@ -1,19 +1,26 @@
-image: python:3.9
-
 stages:
-  - run_python_code
+  - setup
+  - run
 
-before_script:
-  - apt-get update -y
-  - apt-get install -y wget
-  - wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chrome-linux64.zip
-  - ls -l
-  - unzip chromedriver_linux64.zip -d /usr/local/bin/
-  - chmod +x /usr/local/bin/chromedriver
-  - pip install -r requirements.txt
+install_dependencies:
+  stage: setup
+  image: python:3.9
+  script:
+    - apt-get update -y
+    - apt-get install -y wget unzip
+    - wget https://chromedriver.storage.googleapis.com/121.0.6167.85/chromedriver_linux64.zip
+    - unzip chromedriver_linux64.zip -d /usr/local/bin/
+    - chmod +x /usr/local/bin/chromedriver
+    - wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chrome-linux64.zip
+    - unzip chrome-linux64.zip -d /opt/
+    - ln -s /opt/chrome-linux/chrome /usr/bin/chrome
+    - pip install -r requirements.txt
 
 run_python_code:
-  stage: run_python_code
+  stage: run
+  image: python:3.9
   script:
     - echo "Running Python code"
     - python3 amazon_mapping_data.py
+  dependencies:
+    - install_dependencies
