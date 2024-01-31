@@ -25,7 +25,7 @@ run_python_code:
   stage: run
   script:
     - ls -la /usr/local/bin
-    - export PATH=$PATH:/usr/local/bin
+    - export PATH=$PATH:/usr/local/bin/chromedriver
     - pip install -r requirements.txt
     - echo "Running Python code"
     - python3 amazon_mapping_data.py
