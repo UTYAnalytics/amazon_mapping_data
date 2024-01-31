@@ -13,7 +13,7 @@ setup_dependencies:
     - wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
     - apt install -y ./google-chrome-stable_current_amd64.deb
     # Install ChromeDriver
-    - CHROMEDRIVER_VERSION=$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)
+    - CHROMEDRIVER_VERSION=120.0.6099.227 # Corrected line
     - wget https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
     - unzip chromedriver_linux64.zip -d /usr/local/bin/
     - chmod +x /usr/local/bin/chromedriver
@@ -24,7 +24,9 @@ setup_dependencies:
 run_python_code:
   stage: run
   script:
-    - ls -la /usr/local/bin
+    - ls -la /usr/local/bin # List contents to verify presence of chromedriver
+    - google-chrome --version # Check installed version of Chrome
+    - chromedriver --version # Check installed version of ChromeDriver
     - export PATH=$PATH:/usr/local/bin
     - pip install -r requirements.txt
     - echo "Running Python code"
