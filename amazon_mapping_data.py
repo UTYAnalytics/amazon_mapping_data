@@ -19,6 +19,8 @@ import pandas as pd
 import numpy as np
 import time
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
 # import chromedriver_autoinstaller
 
 
@@ -52,7 +54,8 @@ def get_deal_products():
                 a.product_url_href 
                 from seller_product_data a 
                 left join amazon_mapping_data b on a.product_id=b.product_id and a.sys_run_date=b.sys_run_date
-                where b.product_id is null and lower(a.product_brand) not in (select lower(brand) from "IP_Brand")
+                where b.product_id is null and lower(a.product_brand) not in (select lower(brand) from "IP_Brand") and a.product_price <100
+                and a.product_id not in (select distinct amazon_key from temp_sp)
                 order by sys_run_date desc;
     """
     cursor.execute(query)
@@ -229,7 +232,7 @@ def clean_columns(json_object) -> json:
 def get_estimated_sales(asin):
     # Specify the path to your webdriver executable (e.g., chromedriver.exe)
     print("get est_sales")
-    chrome_driver_path = './amazon_mapping_data/chrome_driver/chromedriver'
+    # chrome_driver_path = "amazon_mapping_data/chrome_driver/chromedriver-win64/chromedriver.exe"
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
@@ -237,7 +240,7 @@ def get_estimated_sales(asin):
     chrome_options.add_argument("--disable-dev-shm-usage")
     # print(chrome_options)
     # print(dir(chrome_options))
-    service = Service(chrome_driver_path)
+    # Service(chrome_driver_path)
     driver = webdriver.Chrome(service=service, options=chrome_options)
     try:
         # Navigate to the ProfitGuru website
@@ -393,7 +396,7 @@ def format_data(json_list):
 
 
 # chromedriver_autoinstaller.install()
-
+service = Service(ChromeDriverManager().install())
 SUPABASE_URL = "https://sxoqzllwkjfluhskqlfl.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4b3F6bGx3a2pmbHVoc2txbGZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDIyODE1MTcsImV4cCI6MjAxNzg1NzUxN30.FInynnvuqN8JeonrHa9pTXuQXMp9tE4LO0g5gj0adYE"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)

@@ -7,3 +7,4 @@ google-image-source-search
 fuzzywuzzy
 pandas
 python-Levenshtein
+webdriver_manager
