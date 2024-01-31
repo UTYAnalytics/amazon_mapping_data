@@ -24,6 +24,7 @@ setup_dependencies:
 run_python_code:
   stage: run
   script:
+    - ls -la /usr/local/bin
     - export PATH=$PATH:/usr/local/bin
     - pip install -r requirements.txt
     - echo "Running Python code"

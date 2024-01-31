@@ -234,8 +234,8 @@ def get_estimated_sales(asin):
     # Specify the path to your webdriver executable (e.g., chromedriver.exe)
     print("get est_sales")
     # chromedriver_autoinstaller.install()
-    chrome_driver_path = "/usr/local/bin/chromedriver"
-    service = Service(chrome_driver_path)
+    # chrome_driver_path = "/usr/local/bin/chromedriver"
+    # service = Service(chrome_driver_path)
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
@@ -244,7 +244,7 @@ def get_estimated_sales(asin):
     # print(chrome_options)
     # print(dir(chrome_options))
 
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver = webdriver.Chrome(options=chrome_options)
     try:
         # Navigate to the ProfitGuru website
         driver.get("https://www.profitguru.com/calculator/sales")
