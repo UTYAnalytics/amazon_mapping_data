@@ -234,7 +234,7 @@ def get_estimated_sales(asin):
     # Specify the path to your webdriver executable (e.g., chromedriver.exe)
     print("get est_sales")
     # chromedriver_autoinstaller.install()
-    chrome_driver_path = "amazon_mapping_data/chromedriver-win32/chromedriver.exe"
+    chrome_driver_path = "/usr/local/bin/chromedriver"
     service = Service(chrome_driver_path)
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless=new")
