@@ -241,6 +241,7 @@ def get_estimated_sales(asin):
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--verbose")
     # print(chrome_options)
     # print(dir(chrome_options))
 
