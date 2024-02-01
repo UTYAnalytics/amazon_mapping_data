@@ -16,7 +16,7 @@ setup_dependencies:
     # - CHROMEDRIVER_VERSION=$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)
     - mkdir -p bin
     - wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chromedriver-linux64.zip
-    - unzip chrome-linux64.zip -d bin/
+    - unzip chromedriver-linux64.zip -d bin/
     - chmod +x bin/chromedriver-linux64
     - ./bin/chromedriver-linux64 --version
     - google-chrome --version || echo "Google Chrome not found"
