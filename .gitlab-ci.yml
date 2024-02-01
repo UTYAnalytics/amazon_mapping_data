@@ -15,10 +15,10 @@ setup_dependencies:
     # Install ChromeDriver
     # - CHROMEDRIVER_VERSION=$(curl https://chromedriver.storage.googleapis.com/LATEST_RELEASE)
     - mkdir -p bin
-    - wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chrome-linux64.zip
+    - wget https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/121.0.6167.85/linux64/chromedriver-linux64.zip
     - unzip chrome-linux64.zip -d bin/
-    - chmod +x bin/chromedriver
-    - ./bin/chromedriver --version
+    - chmod +x bin/chromedriver-linux64
+    - ./bin/chromedriver-linux64 --version
     - google-chrome --version || echo "Google Chrome not found"
     - whereis google-chrome
   artifacts:
@@ -37,8 +37,8 @@ run_python_code:
     - google-chrome --version || true # This will print the installed Chrome version
     - whereis google-chrome
     - google-chrome --version || echo "Google Chrome not found"
-    - ls -la bin/chromedriver
-    - ./bin/chromedriver --version
+    - ls -la bin/chromedriver-linux64
+    - ./bin/chromedriver-linux64 --version
     - export PATH=$PATH:$CI_PROJECT_DIR/bin
     - pip install -r requirements.txt
     - echo "Running Python code"
