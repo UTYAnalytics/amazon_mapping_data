@@ -235,7 +235,7 @@ def get_estimated_sales(asin):
     print("get est_sales")
     # chromedriver_autoinstaller.install()
     chrome_driver_path = "./bin/chromedriver"
-    service = Service(chrome_driver_path)
+    service = Service(executable_path="$CI_PROJECT_DIR/bin/chromedriver")
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-gpu")
