@@ -3,7 +3,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium import webdriver
-import chromedriver_autoinstaller
 from google_img_source_search import ReverseImageSearcher
 import json
 import psycopg2
