@@ -2,27 +2,24 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
-from selenium.common.exceptions import WebDriverException
 from selenium import webdriver
-from apify_client import ApifyClient
+import chromedriver_autoinstaller
 from google_img_source_search import ReverseImageSearcher
 import json
 import psycopg2
 from supabase import create_client, Client
-from datetime import datetime, timezone, timedelta
 from fuzzywuzzy import fuzz
 from decimal import Decimal
 from json import JSONEncoder
-import os
 import asyncio
 import pandas as pd
 import numpy as np
 import time
+import requests
+from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
 from selenium.webdriver.chrome.service import Service
-
-# from webdriver_manager.chrome import ChromeDriverManager
-
-# import chromedriver_autoinstaller
+import os
 
 
 class DecimalEncoder(JSONEncoder):
@@ -55,8 +52,7 @@ def get_deal_products():
                 a.product_url_href 
                 from seller_product_data a 
                 left join amazon_mapping_data b on a.product_id=b.product_id and a.sys_run_date=b.sys_run_date
-                where b.product_id is null and lower(a.product_brand) not in (select lower(brand) from "IP_Brand") and a.product_price <100
-                and a.product_id not in (select distinct amazon_key from temp_sp)
+                where b.product_id is null and lower(a.product_brand) not in (select lower(brand) from "IP_Brand")
                 order by sys_run_date desc;
     """
     cursor.execute(query)
@@ -115,44 +111,68 @@ def search_row(row, counter, est_sales_min_threshold=10):
             if "amazon.com/" in str(search_item.page_url):
                 image_url_search.append(search_item.page_url)
 
-        # Prepare the Actor input
-        run_input = {
-            "amazonTld": ".com",
-            "customMapFunction": "(object) => { return {...object} }",
-            "endPage": 1,
-            "extendOutputFunction": "($) => { return {} }",
-            "getReviews": False,
-            "maxItems": 60,
-            "proxy": {"useApifyProxy": True},
-            "reviewsEndPage": 1,
-            "startUrls": image_url_search,
+        url = "https://real-time-amazon-data.p.rapidapi.com/search"
+
+        querystring = {
+            "query": product_name,
+            "page": "2",
+            "country": "US",
+            "category_id": "aps",
+            "brand": product_brand,
         }
 
-        # Run the Actor and wait for it to finish
-        run = client.actor("yoFyGfllOo00TGKLl").call(run_input=run_input)
+        headers = {
+            "X-RapidAPI-Key": "d5dce17eb0msh748fd12da6effc2p150b7cjsn454c33e389bc",
+            "X-RapidAPI-Host": "real-time-amazon-data.p.rapidapi.com",
+        }
 
-        data = []
-        # Fetch and print Actor results from the run's dataset (if there are any)
-        for item in client.dataset(run["defaultDatasetId"]).iterate_items():
-            item["sys_run_date"] = sys_run_date.strftime("%Y-%m-%d")
-            item["product_id"] = product_id
-            item["product_name"] = product_name
-            item["product_image_src"] = product_image_src
-            item["product_price"] = product_price
-            item["product_original_price"] = product_original_price
-            item["product_brand"] = product_brand
-            item["product_url"] = product_url_href
-            item["score_matching"] = fuzz.ratio(
-                product_name, item["title"]
-            )  # Use fuzz.ratio to get a similarity score (percentage)
+        response = requests.get(url, headers=headers, params=querystring)
 
-            cleaned_item = clean_columns(item)
-            if cleaned_item is not None:
-                est_sales = get_estimated_sales(cleaned_item["asin"])
-                cleaned_item["est_sales"] = est_sales
-                insert_new_data("amazon_mapping_data", [cleaned_item])
-                # data.append(cleaned_item)
-    # return data
+        # Check if the request was successful (status code 200)
+        if response.status_code == 200:
+            # Convert the JSON response to a Python object
+            data = response.json()
+
+            # Check if the 'data' key exists in the response
+            if "data" in data:
+                # Extract products from the 'data' dictionary
+                products = data["data"].get("products", [])
+                if products:
+                    # data = []
+                    # Fetch and print Actor results from the run's dataset (if there are any)
+                    for item in products:
+                        item["type"] = "product"
+                        item["title"] = item.pop("product_title")
+                        item["url"] = item.pop("product_url")
+                        item["brand"] = product_brand
+                        item["stars"] = item.pop("product_star_rating")
+                        item["reviewscount"] = item.pop("product_num_ratings")
+                        item["images"] = item.pop("product_photo")
+                        item["product_price"] = (
+                            str(item["product_price"]).replace("$", "")
+                            if str(item["product_price"]).replace("$", "")
+                            else 0
+                        )
+                        item["price_value"] = item.pop("product_price")
+                        item["sys_run_date"] = sys_run_date.strftime("%Y-%m-%d")
+                        item["product_id"] = product_id
+                        item["product_name"] = product_name
+                        item["product_image_src"] = product_image_src
+                        item["product_price"] = product_price
+                        item["product_original_price"] = product_original_price
+                        item["product_brand"] = product_brand
+                        item["product_url"] = product_url_href
+                        item["score_matching"] = fuzz.ratio(
+                            product_name, item["title"]
+                        )  # Use fuzz.ratio to get a similarity score (percentage)
+                        item["price_currency"] = item.pop("currency")
+                        cleaned_item = clean_columns(item)
+                        if cleaned_item is not None:
+                            est_sales = get_estimated_sales(cleaned_item["asin"])
+                            cleaned_item["est_sales"] = est_sales
+                            insert_new_data("amazon_mapping_data", [cleaned_item])
+                            # data.append(cleaned_item)
+                # return data
 
 
 def clean_columns(json_object) -> json:
@@ -163,12 +183,12 @@ def clean_columns(json_object) -> json:
         "type",
         "title",
         "url",
-        "inStock",
-        "maxQuantitySelection",
+        "instock",
+        "maxquantityselection",
         "brand",
-        "shippingText",
+        "shippingtext",
         "stars",
-        "reviewsCount",
+        "reviewscount",
         "categories",
         "images",
         "specs",
@@ -181,43 +201,51 @@ def clean_columns(json_object) -> json:
         "product_original_price",
         "product_brand",
         "score_matching",
-        # "image_matching",
-        "price",
-        "listPrice",
-        "shippingPrice",
-        "seller",
+        "price_value",
+        "price_currency",
+        "listprice_value",
+        "listprice_currency",
+        "shippingprice_value",
+        "shippingprice_currency",
+        "seller_name",
+        "seller_id",
+        "est_sales",
+        "asin",
         "product_url",
     ]
     missing_cols = set(cols) - set(df.columns.tolist())
+    missing_cols2 = set(df.columns.tolist()) - set(cols)
     for col in missing_cols:
         df[col] = None
 
+    df.drop(columns=missing_cols2, inplace=True)
+
     df = df[cols]
 
-    col = "specs"
-    df["temp1"] = df[col].apply(
-        lambda items: sum(
-            [
-                1 if (isinstance(item, dict) and item.get("key") == "ASIN") else 0
-                for item in items
-            ]
-        )
-    )
-    df = df[df.temp1 >= 1]
-    # Drop the 'temp1' column
-    df = df.drop(columns=["temp1"])
-    if len(df) == 0:
-        return None
+    # col = "specs"
+    # df["temp1"] = df[col].apply(
+    #     lambda items: sum(
+    #         [
+    #             1 if (isinstance(item, dict) and item.get("key") == "ASIN") else 0
+    #             for item in items
+    #         ]
+    #     )
+    # )
+    # df = df[df.temp1 >= 1]
+    # # Drop the 'temp1' column
+    # df = df.drop(columns=["temp1"])
+    # if len(df) == 0:
+    #     return None
 
-    df["images"] = df["images"].apply(lambda list1: list1[0] if len(list1) else None)
-    df = df[~pd.isnull(df["images"])]
+    # df["images"] = df["images"].apply(lambda list1: list1[0] if len(list1) else None)
+    # df = df[~pd.isnull(df["images"])]
 
-    df["specs"] = df["specs"].apply(
-        lambda specs_list: dict(
-            [(json_item["key"], json_item["value"]) for json_item in specs_list]
-        )
-    )
-    df["asin"] = df["specs"].apply(lambda specs_json: specs_json["ASIN"])
+    # df["specs"] = df["specs"].apply(
+    #     lambda specs_list: dict(
+    #         [(json_item["key"], json_item["value"]) for json_item in specs_list]
+    #     )
+    # )
+    # df["asin"] = df["specs"].apply(lambda specs_json: specs_json["ASIN"])
 
     df.replace(np.nan, None, inplace=True)
     #     load_data(raw_data, "raw_data", counter)
@@ -251,10 +279,7 @@ def get_estimated_sales(asin):
         # Navigate to the ProfitGuru website
         driver.get("https://www.profitguru.com/calculator/sales")
         # Input ASIN value
-        wait = WebDriverWait(driver, 100)
-        asin_input = wait.until(
-            EC.presence_of_element_located((By.ID, "calc_asin_input"))
-        )
+        asin_input = driver.find_element(By.ID, "calc_asin_input")
         asin_input.send_keys(asin)
         asin_input.send_keys(Keys.ENTER)
         time.sleep(8)
@@ -268,7 +293,11 @@ def get_estimated_sales(asin):
         estimated_sales_text = estimated_sales_element.text.strip()
         # Check if the text is a number
         try:
-            estimated_sales = float(estimated_sales_text.replace(",", ""))
+            estimated_sales = (
+                float(estimated_sales_text.replace(",", ""))
+                if estimated_sales_text.replace(",", "")
+                else 0.00
+            )
         except ValueError:
             estimated_sales = 0
         return estimated_sales
@@ -312,29 +341,9 @@ def insert_new_data(table, data: json):
 
 def format_data(json_list):
     # Proceed with the database insertion
+    # try:
     data = pd.json_normalize(json_list, max_level=0)
-
-    data["shippingprice_value"] = data["shippingPrice"].apply(
-        lambda value: value["value"]
-    )
-    data["shippingprice_currency"] = data["shippingPrice"].apply(
-        lambda value: value["currency"]
-    )
-
-    data["listprice_value"] = data["listPrice"].apply(lambda value: value["value"])
-    data["listprice_currency"] = data["listPrice"].apply(
-        lambda value: value["currency"]
-    )
-
-    data["price_value"] = data["price"].apply(lambda value: value["value"])
-    data["price_currency"] = data["price"].apply(lambda value: value["currency"])
-
-    data["seller_name"] = data["seller"].apply(lambda value: value["name"])
-    data["seller_id"] = data["seller"].apply(lambda value: value["id"])
-
-    # data["reviewscount"] = data["reviewsCount"]
     data.columns = [col.lower() for col in data.columns.tolist()]
-
     table_cols = [
         "type",
         "title",
@@ -369,13 +378,6 @@ def format_data(json_list):
         "asin",
         "product_url",
     ]
-
-    # real_cols = df.columns.tolist()
-
-    # extra_columns = set(real_cols) - set(table_cols)
-    # missing_columns = set(table_cols) - set(real_cols)
-    # print("extra_columns = ", extra_columns)
-    # print("    missing_columns = ", missing_columns)
     numeric_cols = [
         "est_sales",
         "listprice_value",
@@ -387,15 +389,24 @@ def format_data(json_list):
         "stars",
     ]
     for col in numeric_cols:
-        data[col] = data[col].astype(float).fillna(0)
+        data[col] = pd.to_numeric(data[col], errors="coerce")
+        data[col] = data[col].fillna(0).astype(float)
 
     integer_cols = [
         "score_matching",
     ]
     for col in integer_cols:
-        data[col] = data[col].astype(float).fillna(0).astype(int)
+        if data[col].any():
+            data[col] = data[col].fillna(0).astype(float).astype(int)
+        else:
+            data[col] = 0
 
     data = data[table_cols]
+    # except Exception as e:
+    #     with open('test.json', 'w',encoding='utf-8') as file:
+    #         json.dump(json_list, file)
+
+    # raise   e
 
     return data
 
@@ -405,7 +416,7 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Initialize the ApifyClient with your API token
-client = ApifyClient("apify_api_L0SHnudrftNCT9xclBaUVBKTddBUB60WZ66u")
+# client = ApifyClient("apify_api_L0SHnudrftNCT9xclBaUVBKTddBUB60WZ66u")
 
 deal_products = get_deal_products()
 print("running")
@@ -417,16 +428,23 @@ limit = 4
 begin = 0
 end = len(deal_products)
 
-data = asyncio.run(
-    run_parallel(
-        limit=limit,
-        function_name=search_row,
-        begin=begin,
-        end=end,
-    )
-)
 
-# load_data(data, "", "test")
-# insert_new_data(table="amazon_mapping_data", data=data)
+with ThreadPoolExecutor() as executor:
+    # Submit each row for processing
+    futures = [
+        executor.submit(
+            asyncio.run(
+                run_parallel(
+                    limit=limit,
+                    function_name=search_row,
+                    begin=begin,
+                    end=end,
+                )
+            )
+        )
+    ]
+    # Wait for all futures to complete
+    concurrent.futures.wait(futures)
+
 
 print("done")
