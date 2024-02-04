@@ -33,6 +33,7 @@ jobs:
           pip install matplotlib
           pip install fuzzywuzzy
           pip install python-Levenshtein
+          pip install Pyarrow
 
       - name: Install xvfb
         run: sudo apt-get install xvfb
