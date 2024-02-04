@@ -59,7 +59,6 @@ def get_deal_products():
     deal_products = cursor.fetchall()
     return deal_products
 
-
 async def run_parallel(limit, function_name, begin, end):
     semaphore = asyncio.Semaphore(value=limit)
 
