@@ -24,6 +24,8 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
 import unicodedata
 import decimal
+from pyvirtualdisplay import Display
+import chromedriver_autoinstaller
 
 
 class DecimalEncoder(JSONEncoder):
@@ -752,9 +754,6 @@ SUPABASE_URL = "https://sxoqzllwkjfluhskqlfl.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4b3F6bGx3a2pmbHVoc2txbGZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDIyODE1MTcsImV4cCI6MjAxNzg1NzUxN30.FInynnvuqN8JeonrHa9pTXuQXMp9tE4LO0g5gj0adYE"
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Initialize the ApifyClient with your API token
-client = ApifyClient("apify_api_L0SHnudrftNCT9xclBaUVBKTddBUB60WZ66u")
-
 # Replace these with your Keepa username and password
 username = "utytra1"
 password = "SgN2N.yvY@iR2kg"
@@ -765,10 +764,10 @@ email_address = "uty.tra@thebargainvillage.com"
 email_password = "kwuh xdki tstu vyct"
 subject_filter = "Keepa.com Account Security Alert and One-Time Login Code"
 
-# display = Display(visible=0, size=(800, 800))
-# display.start()
+display = Display(visible=0, size=(800, 800))
+display.start()
 
-# chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
+chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
 
 # Create a temporary directory for downloads
 with tempfile.TemporaryDirectory() as download_dir:
