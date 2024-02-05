@@ -55,7 +55,8 @@ def get_deal_products():
                 a.product_image_1_src product_image,
                 a.product_price,
                 a.product_variants->>'size' product_size,
-                a.product_variants->>'color' product_color
+                a.product_variants->>'color' product_color,
+                a.product_brand
                 from seller_product_data a 
                 left join product_seller_amazon_mapping b on a.product_id=b.product_id and a.sys_run_date=b.sys_run_date
                 where a.sys_run_date in (select max(sys_run_date) from seller_product_data)
@@ -113,6 +114,7 @@ def search_row(row, counter, est_sales_min_threshold=10):
             product_price,
             product_size,
             product_color,
+            product_brand,
         ) = row
         image_url_search = []
         asin_list = []
@@ -130,6 +132,7 @@ def search_row(row, counter, est_sales_min_threshold=10):
                 data_df["product_price"] = product_price
                 data_df["product_size"] = product_size
                 data_df["product_color"] = product_color
+                data_df["product_brand"] = product_brand
                 data_df["asin"] = urlparse(search_item.page_url).path.split("/")[-1]
                 asin_list.append(data_df["asin"])
         if asin_list:
@@ -631,123 +634,6 @@ def get_otp_from_email(server, email_address, email_password, subject_filter):
             return match.group(0)
 
     return None
-
-
-def insert_new_data(table, data: json):
-    data = format_data(data)
-    try:
-        print("len data: ", len(data))
-        size = 10000
-        for i in range(0, len(data), size):
-            json_list = (
-                data.loc[i : i + size - 1,]
-                .copy()
-                .replace({np.nan: None})
-                .to_dict(orient="records")
-            )
-
-            # json_list = data.to_dict(orient="records")
-            # Insert the rows into the database using executemany
-            response = supabase.table(table).insert(json_list).execute()
-
-            if hasattr(response, "error") and response.error is not None:
-                print(f"Error inserting rows: {response.error}")
-
-        print(f"Row inserted successfully")
-
-    except Exception as e:
-        print(f"Error with row: {e}")
-        # Optionally, break or continue based on your preference
-
-
-def format_data(json_list):
-    # Proceed with the database insertion
-    data = pd.json_normalize(json_list, max_level=0)
-
-    data["shippingprice_value"] = data["shippingPrice"].apply(
-        lambda value: value["value"]
-    )
-    data["shippingprice_currency"] = data["shippingPrice"].apply(
-        lambda value: value["currency"]
-    )
-
-    data["listprice_value"] = data["listPrice"].apply(lambda value: value["value"])
-    data["listprice_currency"] = data["listPrice"].apply(
-        lambda value: value["currency"]
-    )
-
-    data["price_value"] = data["price"].apply(lambda value: value["value"])
-    data["price_currency"] = data["price"].apply(lambda value: value["currency"])
-
-    data["seller_name"] = data["seller"].apply(lambda value: value["name"])
-    data["seller_id"] = data["seller"].apply(lambda value: value["id"])
-
-    # data["reviewscount"] = data["reviewsCount"]
-    data.columns = [col.lower() for col in data.columns.tolist()]
-
-    table_cols = [
-        "type",
-        "title",
-        "url",
-        "instock",
-        "maxquantityselection",
-        "brand",
-        "shippingtext",
-        "stars",
-        "reviewscount",
-        "categories",
-        "images",
-        "specs",
-        "delivery",
-        "sys_run_date",
-        "product_id",
-        "product_name",
-        "product_image_src",
-        "product_price",
-        "product_original_price",
-        "product_brand",
-        "score_matching",
-        "price_value",
-        "price_currency",
-        "listprice_value",
-        "listprice_currency",
-        "shippingprice_value",
-        "shippingprice_currency",
-        "seller_name",
-        "seller_id",
-        "est_sales",
-        "asin",
-        "product_url",
-    ]
-
-    # real_cols = df.columns.tolist()
-
-    # extra_columns = set(real_cols) - set(table_cols)
-    # missing_columns = set(table_cols) - set(real_cols)
-    # print("extra_columns = ", extra_columns)
-    # print("    missing_columns = ", missing_columns)
-    numeric_cols = [
-        "est_sales",
-        "listprice_value",
-        "price_value",
-        "product_original_price",
-        "product_price",
-        "reviewscount",
-        "shippingprice_value",
-        "stars",
-    ]
-    for col in numeric_cols:
-        data[col] = data[col].astype(float).fillna(0)
-
-    integer_cols = [
-        "score_matching",
-    ]
-    for col in integer_cols:
-        data[col] = data[col].astype(float).fillna(0).astype(int)
-
-    data = data[table_cols]
-
-    return data
 
 
 SUPABASE_URL = "https://sxoqzllwkjfluhskqlfl.supabase.co"

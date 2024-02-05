@@ -646,6 +646,7 @@ for brand in brand_subsets:
                     md5_hash = str(asin) + str(sys_run_date)
                     row_dict["pk_column_name"] = md5_hash
                     # Insert the row into the database
+                    row_dict["product_brand"] = row_dict.get("brand")
                     response = (
                         supabase.table("product_keepa").insert(row_dict).execute()
                     )
