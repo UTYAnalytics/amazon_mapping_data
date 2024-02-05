@@ -18,8 +18,7 @@ opencv-python
 matplotlib
 Pyarrow
 imapclient
-email
-re
-glob
-unicodedata
-decimal
+secure-smtplib
+pytz
+pytest
+google
