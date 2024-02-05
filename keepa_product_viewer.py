@@ -25,6 +25,9 @@ from pyvirtualdisplay import Display
 from urllib.parse import urlparse
 import requests
 import json
+from skimage import io
+import numpy as np
+import cv2 as cv
 
 
 display = Display(visible=0, size=(800, 600))
@@ -70,24 +73,6 @@ with tempfile.TemporaryDirectory() as download_dir:
     chrome_options.add_experimental_option("prefs", prefs)
     for option in options:
         chrome_options.add_argument(option)
-
-
-def wait_for_value_greater_than_zero(driver, locator):
-    # Wait for the element to be present
-    element = WebDriverWait(driver, 20).until(EC.presence_of_element_located(locator))
-
-    # Continuously check the value until it's greater than 0
-    while True:
-        # Get the current value of the element
-        current_value = float(element.text)  # Assuming the value is numeric
-
-        if current_value > 0:
-            break  # Exit the loop if the condition is met
-
-        # Wait for a short interval before checking again
-        WebDriverWait(driver, 5).until(
-            EC.text_to_be_present_in_element(locator, str(current_value))
-        )
 
 
 # Your connection string
@@ -222,6 +207,44 @@ def get_asin_list(brands_list):
         return None
 
 
+def get_selleramp(asin):
+    username_selleramp = "greatwallpurchasingdept@gmail.com"
+    password_selleramp = "H@h@h@365!"
+    driver = webdriver.Chrome(options=chrome_options)
+    # Open SellerAmp
+    driver.get("https://sas.selleramp.com/site/login")
+    wait = WebDriverWait(driver, 20)
+    # Login process
+    try:
+        username_field = wait.until(
+            EC.visibility_of_element_located((By.ID, "loginform-email"))
+        )
+        username_field.send_keys(username_selleramp)
+
+        password_field = driver.find_element(By.ID, "loginform-password")
+        password_field.send_keys(password_selleramp)
+        password_field.send_keys(Keys.RETURN)
+        time.sleep(8)
+    except:
+        raise Exception("Error during login SellerAmp")
+
+    try:
+        asin_field = wait.until(
+            EC.visibility_of_element_located((By.ID, "saslookup-search_term"))
+        )
+        asin_field.send_keys(asin)
+        search_button = wait.until(
+            EC.element_to_be_clickable(
+                (By.XPATH, '//*[@id="sas-calc-form"]/div/div/div/div/div/div[2]/button')
+            )
+        )
+        search_button.click()
+        time.sleep(20)
+    except Exception as e:
+        print(e)
+        driver.quit()
+
+
 for brand in brand_subsets:
 
     # (
@@ -264,8 +287,7 @@ for brand in brand_subsets:
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
     except:
-        raise Exception
-        # print("Error during login:", e)
+        raise Exception("Error during login Keepa")
 
     # Navigate to the product_viewer
     try:
@@ -632,7 +654,8 @@ for brand in brand_subsets:
                     print(f"Row inserted at index {index}")
             except Exception as e:
                 print(f"Error with row at index {index}: {e}")
-                # Optionally, break or continue based on your preference
+                continue
+
     except Exception as e:
         print(e)
         driver.quit()

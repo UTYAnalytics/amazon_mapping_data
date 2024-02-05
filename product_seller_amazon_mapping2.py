@@ -54,7 +54,7 @@ def get_deal_products():
                 a.product_brand,
                 a.product_url_href 
                 from seller_product_data a 
-                left join amazon_mapping_data b on a.product_id=b.product_id and a.sys_run_date=b.sys_run_date
+                left join product_seller_amazon_mapping b on a.product_id=b.product_id and a.sys_run_date=b.sys_run_date
                 where b.product_id is null and lower(a.product_brand) not in (select lower(brand) from "IP_Brand") and a.product_price <50
                 and a.product_id not in (select distinct amazon_key from temp_sp)
                 order by sys_run_date desc;
@@ -114,45 +114,45 @@ def search_row(row, counter, est_sales_min_threshold=10):
         for search_item in res:
             if "amazon.com/" in str(search_item.page_url):
                 image_url_search.append(search_item.page_url)
+        if image_url_search:
+            # Prepare the Actor input
+            run_input = {
+                "amazonTld": ".com",
+                "customMapFunction": "(object) => { return {...object} }",
+                "endPage": 1,
+                "extendOutputFunction": "($) => { return {} }",
+                "getReviews": False,
+                "maxItems": 60,
+                "proxy": {"useApifyProxy": True},
+                "reviewsEndPage": 1,
+                "startUrls": image_url_search,
+            }
 
-        # Prepare the Actor input
-        run_input = {
-            "amazonTld": ".com",
-            "customMapFunction": "(object) => { return {...object} }",
-            "endPage": 1,
-            "extendOutputFunction": "($) => { return {} }",
-            "getReviews": False,
-            "maxItems": 60,
-            "proxy": {"useApifyProxy": True},
-            "reviewsEndPage": 1,
-            "startUrls": image_url_search,
-        }
+            # Run the Actor and wait for it to finish
+            run = client.actor("yoFyGfllOo00TGKLl").call(run_input=run_input)
 
-        # Run the Actor and wait for it to finish
-        run = client.actor("yoFyGfllOo00TGKLl").call(run_input=run_input)
+            data = []
+            # Fetch and print Actor results from the run's dataset (if there are any)
+            for item in client.dataset(run["defaultDatasetId"]).iterate_items():
+                item["sys_run_date"] = sys_run_date.strftime("%Y-%m-%d")
+                item["product_id"] = product_id
+                item["product_name"] = product_name
+                item["product_image_src"] = product_image_src
+                item["product_price"] = product_price
+                item["product_original_price"] = product_original_price
+                item["product_brand"] = product_brand
+                item["product_url"] = product_url_href
+                item["score_matching"] = fuzz.ratio(
+                    product_name, item["title"]
+                )  # Use fuzz.ratio to get a similarity score (percentage)
 
-        data = []
-        # Fetch and print Actor results from the run's dataset (if there are any)
-        for item in client.dataset(run["defaultDatasetId"]).iterate_items():
-            item["sys_run_date"] = sys_run_date.strftime("%Y-%m-%d")
-            item["product_id"] = product_id
-            item["product_name"] = product_name
-            item["product_image_src"] = product_image_src
-            item["product_price"] = product_price
-            item["product_original_price"] = product_original_price
-            item["product_brand"] = product_brand
-            item["product_url"] = product_url_href
-            item["score_matching"] = fuzz.ratio(
-                product_name, item["title"]
-            )  # Use fuzz.ratio to get a similarity score (percentage)
-
-            cleaned_item = clean_columns(item)
-            if cleaned_item is not None:
-                est_sales = get_estimated_sales(cleaned_item["asin"])
-                cleaned_item["est_sales"] = est_sales
-                insert_new_data("amazon_mapping_data", [cleaned_item])
-                # data.append(cleaned_item)
-    # return data
+                cleaned_item = clean_columns(item)
+                if cleaned_item is not None:
+                    est_sales = get_estimated_sales(cleaned_item["asin"])
+                    cleaned_item["est_sales"] = est_sales
+                    insert_new_data("amazon_mapping_data", [cleaned_item])
+                    # data.append(cleaned_item)
+        # return data
 
 
 def clean_columns(json_object) -> json:
@@ -411,7 +411,7 @@ deal_products = get_deal_products()
 print("running")
 print("len deal products: ", len(deal_products))
 
-limit = 4
+limit = 1
 # begin = 2
 # end = 4
 begin = 0
