@@ -30,10 +30,10 @@ import numpy as np
 import cv2 as cv
 
 
-display = Display(visible=0, size=(800, 600))
-display.start()
+# display = Display(visible=0, size=(800, 600))
+# display.start()
 
-chromedriver_autoinstaller.install()
+# chromedriver_autoinstaller.install()
 
 SUPABASE_URL = "https://sxoqzllwkjfluhskqlfl.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4b3F6bGx3a2pmbHVoc2txbGZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDIyODE1MTcsImV4cCI6MjAxNzg1NzUxN30.FInynnvuqN8JeonrHa9pTXuQXMp9tE4LO0g5gj0adYE"
@@ -646,7 +646,6 @@ for brand in brand_subsets:
                     md5_hash = str(asin) + str(sys_run_date)
                     row_dict["pk_column_name"] = md5_hash
                     # Insert the row into the database
-                    row_dict["product_brand"] = row_dict.get("brand")
                     response = (
                         supabase.table("product_keepa").insert(row_dict).execute()
                     )
