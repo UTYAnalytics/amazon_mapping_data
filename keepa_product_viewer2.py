@@ -56,13 +56,14 @@ def get_deal_products():
                 a.product_price,
                 a.product_variants->>'size' product_size,
                 a.product_variants->>'color' product_color,
+                a.product_variants->>'pack' product_pack,
+                a.product_variants->>'attr' product_attr,
                 a.product_brand
                 from seller_product_data a 
                 -- left join product_seller_amazon_mapping b on a.product_id=b.product_id and a.sys_run_date=b.sys_run_date
                 where a.sys_run_date in (select max(sys_run_date) from seller_product_data)
                 --and b.product_id is null 
                 and lower(a.product_brand) not in (select lower(brand) from "IP_Brand") 
-                and a.product_price <50
                 and a.product_id not in (select distinct amazon_key from temp_sp)
                 order by sys_run_date desc;
     """
@@ -113,6 +114,8 @@ def search_row(row, counter, est_sales_min_threshold=10):
             product_price,
             product_size,
             product_color,
+            product_pack,
+            product_attr,
             product_brand,
         ) = row
         data_df = {}
@@ -138,6 +141,8 @@ def search_row(row, counter, est_sales_min_threshold=10):
                 data_df["product_price"] = product_price
                 data_df["product_size"] = product_size
                 data_df["product_color"] = product_color
+                data_df["product_pack"] = product_pack
+                data_df["product_attr"] = product_attr
                 data_df["product_brand"] = product_brand
         if asin_list:
             asin_string = ", ".join(asin_list)
