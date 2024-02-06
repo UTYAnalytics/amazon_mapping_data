@@ -58,9 +58,9 @@ def get_deal_products():
                 a.product_variants->>'color' product_color,
                 a.product_brand
                 from seller_product_data a 
-                left join product_seller_amazon_mapping b on a.product_id=b.product_id and a.sys_run_date=b.sys_run_date
+                -- left join product_seller_amazon_mapping b on a.product_id=b.product_id and a.sys_run_date=b.sys_run_date
                 where a.sys_run_date in (select max(sys_run_date) from seller_product_data)
-                and b.product_id is null 
+                --and b.product_id is null 
                 and lower(a.product_brand) not in (select lower(brand) from "IP_Brand") 
                 and a.product_price <50
                 and a.product_id not in (select distinct amazon_key from temp_sp)
@@ -102,7 +102,6 @@ async def wrapper(semaphore, function_name, *args, **kwargs):
 def search_row(row, counter, est_sales_min_threshold=10):
     print("counter: ", counter)
     print(row)
-    data_df = {}
 
     for row in deal_products:
         (
@@ -116,6 +115,7 @@ def search_row(row, counter, est_sales_min_threshold=10):
             product_color,
             product_brand,
         ) = row
+        data_df = {}
         image_url_search = []
         asin_list = []
         asin_string = ""
@@ -124,6 +124,12 @@ def search_row(row, counter, est_sales_min_threshold=10):
         res = rev_img_searcher.search(image_url)
         for search_item in res:
             if "amazon.com/" in str(search_item.page_url):
+                raw_asin = urlparse(search_item.page_url).path.split("/")[-1]
+                # Check if ASIN consists only of numbers
+                if raw_asin.isdigit():
+                    continue  # Skip the rest of the loop for this iteration
+                data_df["asin"] = raw_asin
+                asin_list.append(data_df["asin"])
                 data_df["sys_run_date"] = sys_run_date.strftime("%Y-%m-%d")
                 data_df["product_id"] = product_id
                 data_df["product_title"] = product_title
@@ -133,8 +139,6 @@ def search_row(row, counter, est_sales_min_threshold=10):
                 data_df["product_size"] = product_size
                 data_df["product_color"] = product_color
                 data_df["product_brand"] = product_brand
-                data_df["asin"] = urlparse(search_item.page_url).path.split("/")[-1]
-                asin_list.append(data_df["asin"])
         if asin_list:
             asin_string = ", ".join(asin_list)
             driver = webdriver.Chrome(options=chrome_options)
@@ -544,6 +548,7 @@ def search_row(row, counter, est_sales_min_threshold=10):
                         if asin and sys_run_date:
                             md5_hash = str(asin) + str(sys_run_date)
                             row_dict["pk_column_name"] = md5_hash
+                            data_df["asin"]=asin
                             data_df["amazon_title"] = row_dict.get("title")
                             data_df["amazon_url"] = "https://www.amazon.com/dp/" + asin
                             data_df["amazon_image"] = row_dict.get("image_urls")
@@ -601,6 +606,8 @@ def search_row(row, counter, est_sales_min_threshold=10):
                 print(e)
                 driver.quit()
                 continue
+        else:
+            continue
 
 
 def get_otp_from_email(server, email_address, email_password, subject_filter):
@@ -650,10 +657,10 @@ email_address = "uty.tra@thebargainvillage.com"
 email_password = "kwuh xdki tstu vyct"
 subject_filter = "Keepa.com Account Security Alert and One-Time Login Code"
 
-display = Display(visible=0, size=(800, 800))
-display.start()
+# display = Display(visible=0, size=(800, 800))
+# display.start()
 
-chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
+# chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
 
 # Create a temporary directory for downloads
 with tempfile.TemporaryDirectory() as download_dir:
