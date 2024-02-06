@@ -577,9 +577,20 @@ def search_row(row, counter, est_sales_min_threshold=10):
                                 hasattr(response2, "error")
                                 and response2.error is not None
                             ):
-                                raise Exception(
-                                    f"Error inserting row: {response2.error}"
+                                print(f"Error inserting row: {response2.error}")
+                                response = (
+                                    supabase.table("product_keepa")
+                                    .insert(row_dict)
+                                    .execute()
                                 )
+                                if (
+                                    hasattr(response, "error")
+                                    and response.error is not None
+                                ):
+                                    raise Exception(
+                                        f"Error inserting row: {response.error}"
+                                    )
+                                print(f"Row inserted at index {index}")
 
                             print(
                                 f"Row inserted at index product_seller_amazon_mapping"
