@@ -566,18 +566,22 @@ def search_row(row, counter, est_sales_min_threshold=10):
                             for key, value in data_df.items():
                                 if isinstance(value, decimal.Decimal):
                                     data_df[key] = float(value)
-                            # Insert the row into the database
-                            response2 = (
-                                supabase.table("product_seller_amazon_mapping")
-                                .insert(data_df)
-                                .execute()
-                            )
+                            try:
+                                # Insert the row into the database
+                                response2 = (
+                                    supabase.table("product_seller_amazon_mapping")
+                                    .insert(data_df)
+                                    .execute()
+                                )
+                                if (
+                                    hasattr(response2, "error")
+                                    and response2.error is not None
+                                ):
+                                    print(f"Error inserting row: {response2.error}")
 
-                            if (
-                                hasattr(response2, "error")
-                                and response2.error is not None
-                            ):
-                                print(f"Error inserting row: {response2.error}")
+                                print(
+                                    f"Row inserted at index product_seller_amazon_mapping"
+                                )
                                 response = (
                                     supabase.table("product_keepa")
                                     .insert(row_dict)
@@ -591,24 +595,18 @@ def search_row(row, counter, est_sales_min_threshold=10):
                                         f"Error inserting row: {response.error}"
                                     )
                                 print(f"Row inserted at index {index}")
-
-                            print(
-                                f"Row inserted at index product_seller_amazon_mapping"
-                            )
-
-                            response = (
-                                supabase.table("product_keepa")
-                                .insert(row_dict)
-                                .execute()
-                            )
-                            if (
-                                hasattr(response, "error")
-                                and response.error is not None
-                            ):
-                                raise Exception(
-                                    f"Error inserting row: {response.error}"
+                            except:
+                                response = (
+                                    supabase.table("product_keepa")
+                                    .insert(row_dict)
+                                    .execute()
                                 )
-                            print(f"Row inserted at index {index}")
+                                if (
+                                    hasattr(response, "error")
+                                    and response.error is not None
+                                ):
+                                    print(f"Error inserting row: {response.error}")
+                                print(f"Row inserted at index {index}")
 
                     except Exception as e:
                         print(f"Error with row at index {index}: {e}")
@@ -668,10 +666,10 @@ email_address = "uty.tra@thebargainvillage.com"
 email_password = "kwuh xdki tstu vyct"
 subject_filter = "Keepa.com Account Security Alert and One-Time Login Code"
 
-display = Display(visible=0, size=(800, 800))
-display.start()
+# display = Display(visible=0, size=(800, 800))
+# display.start()
 
-chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
+# chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
 
 # Create a temporary directory for downloads
 with tempfile.TemporaryDirectory() as download_dir:
