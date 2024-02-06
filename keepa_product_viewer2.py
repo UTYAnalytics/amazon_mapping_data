@@ -4,7 +4,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 from selenium import webdriver
 from google_img_source_search import ReverseImageSearcher
-import json
 import psycopg2
 from supabase import create_client, Client
 from decimal import Decimal

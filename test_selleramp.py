@@ -86,7 +86,8 @@ def get_selleramp(asin, cost_price):
         )
         # costprice_input.clear()
         costprice_input.send_keys(cost_price)
-        time.sleep(5)
+        time.sleep(2)
+        
     except Exception as e:
         print(e)
         driver.quit()
