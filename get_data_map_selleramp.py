@@ -72,6 +72,7 @@ def get_deal_products():
                 product_keepa b ON a.sys_run_date = b.sys_run_date AND a.asin = b.asin
             LEFT JOIN 
                 seller_product_data c ON a.sys_run_date = c.sys_run_date AND a.product_id = c.product_id
+            left join product_data_mapping_finals d on a.sys_run_date=d.sys_run_date and a.asin=d.asin and a.product_id = d.product_id
             WHERE 
                 a.image_matching IS NULL
                 AND a.product_brand = a.brand
@@ -80,7 +81,8 @@ def get_deal_products():
                 AND COALESCE(b.buy_box_90_days_avg_price, 0) >= 20
                 AND COALESCE(b.Buy_Box_Is_FBA, 'no') = 'no'
                 AND COALESCE(b.Count_of_Retrieved_Live_Offers_New_FBA, 0) = 0
-                AND c.product_availabilitystatus NOT IN ('OUT_OF_STOCK');
+                AND c.product_availabilitystatus NOT IN ('OUT_OF_STOCK')
+                AND d.product_id is null;
     """
     cursor.execute(query)
     # Fetch all the rows as a list
