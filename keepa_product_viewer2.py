@@ -205,7 +205,9 @@ def search_row(row, counter, est_sales_min_threshold=10):
                     ListAsin_field.send_keys(asin_string)
 
                     Loadlist_button = wait.until(
-                        EC.element_to_be_clickable((By.XPATH, '//*[@id="importSubmit"]'))
+                        EC.element_to_be_clickable(
+                            (By.XPATH, '//*[@id="importSubmit"]')
+                        )
                     )
                     Loadlist_button.click()
                     time.sleep(5)
@@ -217,6 +219,17 @@ def search_row(row, counter, est_sales_min_threshold=10):
                         )
                         raise Exception("Popup detected, skipping to next retailer")
                     except TimeoutException:
+                        try:
+                            # Try to find the close button of the popup
+                            close_button = driver.find_element(
+                                By.ID, "shareChartOverlay-close4"
+                            )
+                            # If found, click it to close the popup
+                            close_button.click()
+                            print("Popup was found and closed.")
+                        except NoSuchElementException:
+                            # If the close button is not found, the popup is not displayed
+                            print("Popup not found; continuing with the script.")
                         export_button = wait.until(
                             EC.element_to_be_clickable(
                                 (
@@ -554,9 +567,13 @@ def search_row(row, counter, est_sales_min_threshold=10):
                                 row_dict["pk_column_name"] = md5_hash
                                 data_df["asin"] = asin
                                 data_df["amazon_title"] = row_dict.get("title")
-                                data_df["amazon_url"] = "https://www.amazon.com/dp/" + asin
+                                data_df["amazon_url"] = (
+                                    "https://www.amazon.com/dp/" + asin
+                                )
                                 data_df["amazon_image"] = row_dict.get("image_urls")
-                                data_df["amazon_category"] = row_dict.get("categories_root")
+                                data_df["amazon_category"] = row_dict.get(
+                                    "categories_root"
+                                )
                                 data_df["brand"] = row_dict.get("brand")
                                 data_df["amazon_size"] = row_dict.get("size")
                                 data_df["amazon_color"] = row_dict.get("color")
@@ -673,10 +690,10 @@ email_address = "uty.tra@thebargainvillage.com"
 email_password = "kwuh xdki tstu vyct"
 subject_filter = "Keepa.com Account Security Alert and One-Time Login Code"
 
-display = Display(visible=0, size=(800, 800))
-display.start()
+# display = Display(visible=0, size=(800, 800))
+# display.start()
 
-chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
+# chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
 
 # Create a temporary directory for downloads
 with tempfile.TemporaryDirectory() as download_dir:
