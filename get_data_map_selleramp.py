@@ -16,6 +16,7 @@ from pyvirtualdisplay import Display
 import chromedriver_autoinstaller
 import re
 
+
 class DecimalEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, Decimal):
@@ -91,44 +92,41 @@ def get_deal_products():
     return deal_products
 
 
-async def run_parallel(limit, function_name, begin, end, refresh_rate):
+async def run_parallel(limit, function_name, refresh_rate):
     semaphore = asyncio.Semaphore(value=limit)
-    global deal_products  # Make deal_products accessible globally if not already
 
     while True:
-        tasks = []
-
-        # Re-fetch deal_products at the beginning of each cycle
-        deal_products = get_deal_products()
+        deal_products = get_deal_products()  # Fetch the latest products
         if not deal_products:
             print("No more products to process. Exiting.")
             break
 
-        print(f"start path: {begin}: {min(end, len(deal_products))}")
-        for j in range(begin, min(end, len(deal_products))):
+        for j, deal_product in enumerate(deal_products):
+            # Wrap the function call in a task, managing concurrency with the semaphore
             task = asyncio.create_task(
-                wrapper(semaphore, function_name, deal_products[j], j)
+                wrapper(semaphore, function_name, deal_product, j)
             )
-            tasks.append(task)
 
-        # Run tasks for the current batch of deal_products
-        await asyncio.gather(*tasks)
+            # Wait for the task to complete before continuing
+            await task
 
-        # Optionally, wait for a certain period before fetching updates again
-        if refresh_rate > 0:
-            await asyncio.sleep(refresh_rate)
+            if refresh_rate > 0:
+                await asyncio.sleep(refresh_rate)
 
-        # Check if you need conditions to break out of the loop, such as a signal or a state
+            # Refresh `deal_products` by fetching new data
+            # This is critical if your `get_deal_products` function has side effects
+            # or if the database changes frequently
+            deal_products = get_deal_products()
 
-    # results = await asyncio.gather(*tasks)
-    # data = []
-    # [data.extend(json_list) for json_list in results]
-    # return data
+            if not deal_products:
+                print("No more products to process after refresh. Exiting.")
+                break
+
+        # If needed, add any conditions to break out of the while loop here
 
 
 async def wrapper(semaphore, function_name, *args, **kwargs):
     async with semaphore:
-        # Call the synchronous get_data function in a separate thread
         result = await asyncio.to_thread(function_name, *args, **kwargs)
         return result
 
@@ -136,37 +134,140 @@ async def wrapper(semaphore, function_name, *args, **kwargs):
 def search_row(row, counter, est_sales_min_threshold=10):
     print("counter: ", counter)
     print(row)
+    (
+        sys_run_date,
+        product_id,
+        product_title,
+        product_url,
+        product_image,
+        product_price,
+        product_size,
+        product_color,
+        product_pack,
+        product_attr,
+        product_brand,
+        amazon_title,
+        amazon_url,
+        amazon_image,
+        amazon_category,
+        brand,
+        amazon_size,
+        amazon_color,
+        asin,
+        amazon_pack,
+        buy_box_current_price,
+        buy_box_90_days_avg_price,
+        image_matching,
+        total_cost_price,
+    ) = row
+    data_df = {}
+    data_df = {
+        "sys_run_date": sys_run_date,
+        "product_id": product_id,
+        "product_title": product_title,
+        "product_url": product_url,
+        "product_image": product_image,
+        "product_price": product_price,
+        "product_size": product_size,
+        "product_color": product_color,
+        "product_pack": product_pack,
+        "product_attr": product_attr,
+        "product_brand": product_brand,
+        "amazon_title": amazon_title,
+        "amazon_url": amazon_url,
+        "amazon_image": amazon_image,
+        "amazon_category": amazon_category,
+        "brand": brand,
+        "amazon_size": amazon_size,
+        "amazon_color": amazon_color,
+        "asin": asin,
+        "amazon_pack": amazon_pack,
+        "buy_box_current_price": buy_box_current_price,
+        "buy_box_90_days_avg_price": buy_box_90_days_avg_price,
+        "image_matching": image_matching,
+        "total_cost_price": total_cost_price,
+    }
+    for key, value in data_df.items():
+        if isinstance(value, decimal.Decimal):
+            data_df[key] = float(value)
+    driver = webdriver.Chrome(options=chrome_options)
+    # Open SellerAmp
+    driver.get("https://sas.selleramp.com/site/login")
+    wait = WebDriverWait(driver, 20)
+    # Login process
+    try:
+        username_field = wait.until(
+            EC.visibility_of_element_located((By.ID, "loginform-email"))
+        )
+        username_field.send_keys(username_selleramp)
 
-    for row in deal_products:
-        (
-            sys_run_date,
-            product_id,
-            product_title,
-            product_url,
-            product_image,
-            product_price,
-            product_size,
-            product_color,
-            product_pack,
-            product_attr,
-            product_brand,
-            amazon_title,
-            amazon_url,
-            amazon_image,
-            amazon_category,
-            brand,
-            amazon_size,
-            amazon_color,
-            asin,
-            amazon_pack,
-            buy_box_current_price,
-            buy_box_90_days_avg_price,
-            image_matching,
-            total_cost_price,
-        ) = row
-        data_df = {}
+        password_field = driver.find_element(By.ID, "loginform-password")
+        password_field.send_keys(password_selleramp)
+        password_field.send_keys(Keys.RETURN)
+        time.sleep(8)
+    except:
+        raise Exception("Error during login SellerAmp")
+
+    try:
+        asin_field = wait.until(
+            EC.visibility_of_element_located((By.ID, "saslookup-search_term"))
+        )
+        asin_field.send_keys(asin)
+        search_button = wait.until(
+            EC.element_to_be_clickable(
+                (
+                    By.XPATH,
+                    '//*[@id="sas-calc-form"]/div/div/div/div/div/div[2]/button',
+                )
+            )
+        )
+        search_button.click()
+        time.sleep(20)
+
+        # Execute JavaScript to clear the input field
+        driver.execute_script("document.getElementById('qi_cost').value = ''")
+        costprice_input = wait.until(
+            EC.visibility_of_element_located((By.ID, "qi_cost"))
+        )
+        # costprice_input.clear()
+        costprice_input.send_keys(data_df["total_cost_price"])
+        time.sleep(2)
+
+        bsr_element = wait.until(EC.visibility_of_element_located((By.ID, "qi-bsr")))
+        bsr_text = bsr_element.text
+        bsr_value = bsr_text.split()[0]
+
+        estsale_element = wait.until(
+            EC.visibility_of_element_located(
+                (
+                    By.CSS_SELECTOR,
+                    "#qi-estimated-sales > span.estimated_sales_per_mo",
+                )
+            )
+        )
+        estsale_text = estsale_element.text
+        estsale_value = float(extract_number(estsale_text))
+
+        profit_element = wait.until(
+            EC.visibility_of_element_located((By.ID, "qi-profit"))
+        )
+        profit_text = profit_element.text
+        profit_value = float(extract_number(profit_text))
+
+        roi_element = wait.until(
+            EC.visibility_of_element_located((By.ID, "saslookup-roi"))
+        )
+        roi_text = roi_element.text
+        roi_value = float(extract_number(roi_text))
+
+        fee_element = wait.until(
+            EC.visibility_of_element_located((By.ID, "saslookup-total_fee"))
+        )
+        fee_text = fee_element.text
+        fee_value = float(extract_number(fee_text))
+        # Convert row to dictionary
         data_df = {
-            "sys_run_date": sys_run_date,
+            "sys_run_date": sys_run_date.strftime("%Y-%m-%d"),
             "product_id": product_id,
             "product_title": product_title,
             "product_url": product_url,
@@ -190,156 +291,50 @@ def search_row(row, counter, est_sales_min_threshold=10):
             "buy_box_90_days_avg_price": buy_box_90_days_avg_price,
             "image_matching": image_matching,
             "total_cost_price": total_cost_price,
+            "bsr_percent": bsr_value,
+            "est_sale": estsale_value,
+            "profit": profit_value,
+            "roi": roi_value,
+            "total_fee": fee_value,
         }
         for key, value in data_df.items():
             if isinstance(value, decimal.Decimal):
                 data_df[key] = float(value)
-        driver = webdriver.Chrome(options=chrome_options)
-        # Open SellerAmp
-        driver.get("https://sas.selleramp.com/site/login")
-        wait = WebDriverWait(driver, 20)
-        # Login process
         try:
-            username_field = wait.until(
-                EC.visibility_of_element_located((By.ID, "loginform-email"))
+            response2 = (
+                supabase.table("product_data_mapping_finals").insert(data_df).execute()
             )
-            username_field.send_keys(username_selleramp)
+            if hasattr(response2, "error") and response2.error is not None:
+                print(f"Error inserting row: {response2.error}")
 
-            password_field = driver.find_element(By.ID, "loginform-password")
-            password_field.send_keys(password_selleramp)
-            password_field.send_keys(Keys.RETURN)
-            time.sleep(8)
-        except:
-            raise Exception("Error during login SellerAmp")
-
-        try:
-            asin_field = wait.until(
-                EC.visibility_of_element_located((By.ID, "saslookup-search_term"))
-            )
-            asin_field.send_keys(asin)
-            search_button = wait.until(
-                EC.element_to_be_clickable(
-                    (
-                        By.XPATH,
-                        '//*[@id="sas-calc-form"]/div/div/div/div/div/div[2]/button',
-                    )
-                )
-            )
-            search_button.click()
-            time.sleep(20)
-
-            # Execute JavaScript to clear the input field
-            driver.execute_script("document.getElementById('qi_cost').value = ''")
-            costprice_input = wait.until(
-                EC.visibility_of_element_located((By.ID, "qi_cost"))
-            )
-            # costprice_input.clear()
-            costprice_input.send_keys(data_df["total_cost_price"])
-            time.sleep(2)
-
-            bsr_element = wait.until(
-                EC.visibility_of_element_located((By.ID, "qi-bsr"))
-            )
-            bsr_text = bsr_element.text
-            bsr_value = bsr_text.split()[0]
-
-            estsale_element = wait.until(
-                EC.visibility_of_element_located(
-                    (
-                        By.CSS_SELECTOR,
-                        "#qi-estimated-sales > span.estimated_sales_per_mo",
-                    )
-                )
-            )
-            estsale_text = estsale_element.text
-            estsale_value = float(extract_number(estsale_text))
-
-            profit_element = wait.until(
-                EC.visibility_of_element_located((By.ID, "qi-profit"))
-            )
-            profit_text = profit_element.text
-            profit_value = float(extract_number(profit_text))
-
-            roi_element = wait.until(
-                EC.visibility_of_element_located((By.ID, "saslookup-roi"))
-            )
-            roi_text = roi_element.text
-            roi_value = float(extract_number(roi_text))
-
-            fee_element = wait.until(
-                EC.visibility_of_element_located((By.ID, "saslookup-total_fee"))
-            )
-            fee_text = fee_element.text
-            fee_value = float(extract_number(fee_text))
-            # Convert row to dictionary
-            data_df = {
-                "sys_run_date": sys_run_date.strftime("%Y-%m-%d"),
-                "product_id": product_id,
-                "product_title": product_title,
-                "product_url": product_url,
-                "product_image": product_image,
-                "product_price": product_price,
-                "product_size": product_size,
-                "product_color": product_color,
-                "product_pack": product_pack,
-                "product_attr": product_attr,
-                "product_brand": product_brand,
-                "amazon_title": amazon_title,
-                "amazon_url": amazon_url,
-                "amazon_image": amazon_image,
-                "amazon_category": amazon_category,
-                "brand": brand,
-                "amazon_size": amazon_size,
-                "amazon_color": amazon_color,
-                "asin": asin,
-                "amazon_pack": amazon_pack,
-                "buy_box_current_price": buy_box_current_price,
-                "buy_box_90_days_avg_price": buy_box_90_days_avg_price,
-                "image_matching": image_matching,
-                "total_cost_price": total_cost_price,
-                "bsr_percent": bsr_value,
-                "est_sale": estsale_value,
-                "profit": profit_value,
-                "roi": roi_value,
-                "total_fee": fee_value,
-            }
-            for key, value in data_df.items():
-                if isinstance(value, decimal.Decimal):
-                    data_df[key] = float(value)
-            try:
-                response2 = (
-                    supabase.table("product_data_mapping_finals")
-                    .insert(data_df)
-                    .execute()
-                )
-                if hasattr(response2, "error") and response2.error is not None:
-                    print(f"Error inserting row: {response2.error}")
-
-                print(f"Row inserted at:{data_df}")
-            except Exception as e:
-                print(f"Error with row at index {asin}: {e}")
-                continue
+            print(f"Row inserted at:{data_df}")
         except Exception as e:
-            print(e)
-            driver.quit()
+            print(f"Error with row at index {asin}: {e}")
+    except Exception as e:
+        print(e)
+        driver.quit()
+
 
 def extract_number(text):
     # Regular expression to find numbers, including those with commas as thousand separators and periods as decimal points
     # This regex also accounts for optional leading characters (e.g., ">") and trailing text or symbols (e.g., "$" or "below")
-    match = re.search(r'([<>]?)(\d{1,3}(?:,\d{3})*(?:\.\d+)?)(\s*[$€£]?)', text.replace(",", ""))
+    match = re.search(
+        r"([<>]?)(\d{1,3}(?:,\d{3})*(?:\.\d+)?)(\s*[$€£]?)", text.replace(",", "")
+    )
     if match:
         # Extract the numeric part and convert commas to dots if necessary for decimal
         number_str = match.group(2).replace(",", "")
         number = float(number_str)
         # Check for a leading '<' or '>' to adjust the number slightly to reflect it's an approximation
-        if match.group(1) == '>':
+        if match.group(1) == ">":
             number += 0.01  # Assuming the number is slightly greater
-        elif match.group(1) == '<':
+        elif match.group(1) == "<":
             number -= 0.01  # Assuming the number is slightly less
         return number
     else:
         # If no number is found, return None or raise an error based on your needs
         return None
+
 
 SUPABASE_URL = "https://sxoqzllwkjfluhskqlfl.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4b3F6bGx3a2pmbHVoc2txbGZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDIyODE1MTcsImV4cCI6MjAxNzg1NzUxN30.FInynnvuqN8JeonrHa9pTXuQXMp9tE4LO0g5gj0adYE"
@@ -349,10 +344,10 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 username_selleramp = "greatwallpurchasingdept@gmail.com"
 password_selleramp = "H@h@h@365!"
 
-# display = Display(visible=0, size=(800, 800))
-# display.start()
+display = Display(visible=0, size=(800, 800))
+display.start()
 
-# chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
+chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
 
 # Create a temporary directory for downloads
 with tempfile.TemporaryDirectory() as download_dir:
@@ -383,7 +378,7 @@ deal_products = get_deal_products()
 print("running")
 print("len deal products: ", len(deal_products))
 
-limit = 1
+limit = 5
 # begin = 2
 # end = 4
 begin = 0
@@ -392,16 +387,9 @@ end = len(deal_products)
 # Adjust the call to run_parallel to include refresh_rate
 data = asyncio.run(
     run_parallel(
-        limit=limit,
+        limit=1,  # Adjust as needed
         function_name=search_row,
-        begin=begin,
-        end=end,
-        refresh_rate=0,  # Immediate refresh after each batch; adjust as needed
+        refresh_rate=0,  # Set your desired refresh rate
     )
 )
-
-
-# load_data(data, "", "test")
-# insert_new_data(table="amazon_mapping_data", data=data)
-
 print("done")
