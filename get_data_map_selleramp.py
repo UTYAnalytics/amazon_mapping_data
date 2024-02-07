@@ -389,7 +389,7 @@ data = asyncio.run(
     run_parallel(
         limit=1,  # Adjust as needed
         function_name=search_row,
-        refresh_rate=0,  # Set your desired refresh rate
+        refresh_rate=1,  # Set your desired refresh rate
     )
 )
 print("done")
