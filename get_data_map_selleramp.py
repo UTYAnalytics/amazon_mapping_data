@@ -14,7 +14,7 @@ import tempfile
 import decimal
 from pyvirtualdisplay import Display
 import chromedriver_autoinstaller
-
+import re
 
 class DecimalEncoder(JSONEncoder):
     def default(self, o):
@@ -82,7 +82,8 @@ def get_deal_products():
                 AND COALESCE(b.Buy_Box_Is_FBA, 'no') = 'no'
                 AND COALESCE(b.Count_of_Retrieved_Live_Offers_New_FBA, 0) = 0
                 AND c.product_availabilitystatus NOT IN ('OUT_OF_STOCK')
-                AND d.product_id is null;
+                AND d.product_id is null
+            ORDER BY a.sys_run_date;
     """
     cursor.execute(query)
     # Fetch all the rows as a list
@@ -90,19 +91,34 @@ def get_deal_products():
     return deal_products
 
 
-async def run_parallel(limit, function_name, begin, end):
+async def run_parallel(limit, function_name, begin, end, refresh_rate):
     semaphore = asyncio.Semaphore(value=limit)
+    global deal_products  # Make deal_products accessible globally if not already
 
-    tasks = []
-    print(f"start path: {begin}: {end}")
-    for j in range(begin, end):
-        task = asyncio.create_task(
-            wrapper(semaphore, function_name, deal_products[j], j)
-        )
-        tasks.append(task)
+    while True:
+        tasks = []
 
-    # Run tasks
-    await asyncio.gather(*tasks)
+        # Re-fetch deal_products at the beginning of each cycle
+        deal_products = get_deal_products()
+        if not deal_products:
+            print("No more products to process. Exiting.")
+            break
+
+        print(f"start path: {begin}: {min(end, len(deal_products))}")
+        for j in range(begin, min(end, len(deal_products))):
+            task = asyncio.create_task(
+                wrapper(semaphore, function_name, deal_products[j], j)
+            )
+            tasks.append(task)
+
+        # Run tasks for the current batch of deal_products
+        await asyncio.gather(*tasks)
+
+        # Optionally, wait for a certain period before fetching updates again
+        if refresh_rate > 0:
+            await asyncio.sleep(refresh_rate)
+
+        # Check if you need conditions to break out of the loop, such as a signal or a state
 
     # results = await asyncio.gather(*tasks)
     # data = []
@@ -236,25 +252,25 @@ def search_row(row, counter, est_sales_min_threshold=10):
                 )
             )
             estsale_text = estsale_element.text
-            estsale_value = float(estsale_text.replace(",", ".").split()[0])
+            estsale_value = float(extract_number(estsale_text))
 
             profit_element = wait.until(
                 EC.visibility_of_element_located((By.ID, "qi-profit"))
             )
             profit_text = profit_element.text
-            profit_value = float(profit_text.split("$")[1])
+            profit_value = float(extract_number(profit_text))
 
             roi_element = wait.until(
                 EC.visibility_of_element_located((By.ID, "saslookup-roi"))
             )
             roi_text = roi_element.text
-            roi_value = float(roi_text.strip("%"))
+            roi_value = float(extract_number(roi_text))
 
             fee_element = wait.until(
                 EC.visibility_of_element_located((By.ID, "saslookup-total_fee"))
             )
             fee_text = fee_element.text
-            fee_value = float(fee_text.split("$")[1])
+            fee_value = float(extract_number(fee_text))
             # Convert row to dictionary
             data_df = {
                 "sys_run_date": sys_run_date.strftime("%Y-%m-%d"),
@@ -307,6 +323,23 @@ def search_row(row, counter, est_sales_min_threshold=10):
             print(e)
             driver.quit()
 
+def extract_number(text):
+    # Regular expression to find numbers, including those with commas as thousand separators and periods as decimal points
+    # This regex also accounts for optional leading characters (e.g., ">") and trailing text or symbols (e.g., "$" or "below")
+    match = re.search(r'([<>]?)(\d{1,3}(?:,\d{3})*(?:\.\d+)?)(\s*[$€£]?)', text.replace(",", ""))
+    if match:
+        # Extract the numeric part and convert commas to dots if necessary for decimal
+        number_str = match.group(2).replace(",", "")
+        number = float(number_str)
+        # Check for a leading '<' or '>' to adjust the number slightly to reflect it's an approximation
+        if match.group(1) == '>':
+            number += 0.01  # Assuming the number is slightly greater
+        elif match.group(1) == '<':
+            number -= 0.01  # Assuming the number is slightly less
+        return number
+    else:
+        # If no number is found, return None or raise an error based on your needs
+        return None
 
 SUPABASE_URL = "https://sxoqzllwkjfluhskqlfl.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4b3F6bGx3a2pmbHVoc2txbGZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDIyODE1MTcsImV4cCI6MjAxNzg1NzUxN30.FInynnvuqN8JeonrHa9pTXuQXMp9tE4LO0g5gj0adYE"
@@ -316,10 +349,10 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 username_selleramp = "greatwallpurchasingdept@gmail.com"
 password_selleramp = "H@h@h@365!"
 
-display = Display(visible=0, size=(800, 800))
-display.start()
+# display = Display(visible=0, size=(800, 800))
+# display.start()
 
-chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
+# chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
 
 # Create a temporary directory for downloads
 with tempfile.TemporaryDirectory() as download_dir:
@@ -356,14 +389,17 @@ limit = 1
 begin = 0
 end = len(deal_products)
 
+# Adjust the call to run_parallel to include refresh_rate
 data = asyncio.run(
     run_parallel(
         limit=limit,
         function_name=search_row,
         begin=begin,
         end=end,
+        refresh_rate=0,  # Immediate refresh after each batch; adjust as needed
     )
 )
+
 
 # load_data(data, "", "test")
 # insert_new_data(table="amazon_mapping_data", data=data)
