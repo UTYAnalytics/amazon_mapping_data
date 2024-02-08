@@ -387,9 +387,9 @@ end = len(deal_products)
 # Adjust the call to run_parallel to include refresh_rate
 data = asyncio.run(
     run_parallel(
-        limit=1,  # Adjust as needed
+        limit,  # Adjust as needed
         function_name=search_row,
-        refresh_rate=1,  # Set your desired refresh rate
+        refresh_rate=2,  # Set your desired refresh rate
     )
 )
 print("done")
