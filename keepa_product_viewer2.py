@@ -63,7 +63,7 @@ def get_deal_products():
                 where a.sys_run_date in (select max(sys_run_date) from seller_product_data)
                 and b.product_id is null 
                 and lower(a.product_brand) not in (select lower(brand) from "IP_Brand") 
-                and a.product_id not in (select distinct amazon_key from temp_sp);
+                and a.product_id not in (select distinct product_id from mapping_finals);
     """
     cursor.execute(query)
     # Fetch all the rows as a list
@@ -84,11 +84,6 @@ async def run_parallel(limit, function_name, begin, end):
 
     # Run tasks
     await asyncio.gather(*tasks)
-
-    # results = await asyncio.gather(*tasks)
-    # data = []
-    # [data.extend(json_list) for json_list in results]
-    # return data
 
 
 async def wrapper(semaphore, function_name, *args, **kwargs):
@@ -167,7 +162,29 @@ def search_row(row, counter, est_sales_min_threshold=10):
                     password_field = driver.find_element(By.ID, "password")
                     password_field.send_keys(password)
                     password_field.send_keys(Keys.RETURN)
-                    time.sleep(8)
+                    time.sleep(2)
+                    # This is a hypothetical CSS selector targeting the close button inside a specific parent
+                    # Adjust the selector based on the actual structure of your HTML
+                    close_button_selector = "#shareChartOverlay-close .fa-times-circle"
+
+                    try:
+                        # Wait for the popup close button to be clickable
+                        WebDriverWait(driver, 10).until(
+                            EC.element_to_be_clickable(
+                                (By.CSS_SELECTOR, close_button_selector)
+                            )
+                        )
+
+                        # Find the close button using the CSS selector and click it
+                        close_button = driver.find_element(
+                            By.CSS_SELECTOR, close_button_selector
+                        )
+                        close_button.click()
+                    except TimeoutException:
+                        print(
+                            "The close button was not found or the popup did not appear within the timeout period."
+                        )
+
                     try:
                         otp = get_otp_from_email(
                             server, email_address, email_password, subject_filter
@@ -210,7 +227,7 @@ def search_row(row, counter, est_sales_min_threshold=10):
                         )
                     )
                     Loadlist_button.click()
-                    time.sleep(5)
+                    time.sleep(2)
                     # Logic to handle the presence of a specific popup
                     try:
                         # Wait for a certain amount of time for the popup to appear
@@ -239,14 +256,14 @@ def search_row(row, counter, est_sales_min_threshold=10):
                             )
                         )
                         export_button.click()
-                        time.sleep(5)
+                        time.sleep(2)
                         final_download_button = wait.until(
                             EC.element_to_be_clickable(
                                 (By.XPATH, '//*[@id="exportSubmit"]')
                             )
                         )
                         final_download_button.click()
-                        time.sleep(5)
+                        time.sleep(2)
                         driver.quit()
 
                     def get_newest_file(directory):
