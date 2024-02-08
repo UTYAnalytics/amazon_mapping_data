@@ -3,7 +3,7 @@ name: Run Selenium2 On GitHub Action
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/30 * * * *'  # Run every 30 minutes
+    - cron: '*/10 * * * *'  # Run every 30 minutes
 
 jobs:
   # keepa_product_viewer:
