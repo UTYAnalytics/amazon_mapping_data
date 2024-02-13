@@ -71,7 +71,7 @@ def get_deal_products():
     return deal_products
 
 
-async def run_parallel(limit, function_name, refresh_rate):
+async def run_parallel(limit, function_name, begin, end,refresh_rate):
     semaphore = asyncio.Semaphore(value=limit)
 
     while True:
@@ -80,10 +80,10 @@ async def run_parallel(limit, function_name, refresh_rate):
             print("No more products to process. Exiting.")
             break
 
-        for j, deal_product in enumerate(deal_products):
+        for j in range(begin,end):
             # Wrap the function call in a task, managing concurrency with the semaphore
             task = asyncio.create_task(
-                wrapper(semaphore, function_name, deal_product, j)
+                wrapper(semaphore, function_name, deal_products[j], j)
             )
 
             # Wait for the task to complete before continuing
@@ -139,7 +139,7 @@ def search_row(row, counter, est_sales_min_threshold=10):
             if "amazon.com/" in str(search_item.page_url):
                 raw_asin = urlparse(search_item.page_url).path.split("/")[-1]
                 # Check if ASIN consists only of numbers
-                if raw_asin.isdigit():
+                if raw_asin.isdigit() or re.fullmatch(r"(s(,s)*)?", raw_asin.lower()):
                     continue  # Skip the rest of the loop for this iteration
                 data_df["asin"] = raw_asin
                 asin_list.append(data_df["asin"])
@@ -715,10 +715,10 @@ email_address = "uty.tra@thebargainvillage.com"
 email_password = "kwuh xdki tstu vyct"
 subject_filter = "Keepa.com Account Security Alert and One-Time Login Code"
 
-display = Display(visible=0, size=(800, 800))
-display.start()
+# display = Display(visible=0, size=(800, 800))
+# display.start()
 
-chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
+# chromedriver_autoinstaller.install()  # Check if the current version of chromedriver exists
 
 # Create a temporary directory for downloads
 with tempfile.TemporaryDirectory() as download_dir:
@@ -756,6 +756,8 @@ data = asyncio.run(
     run_parallel(
         limit,  # Adjust as needed
         function_name=search_row,
+        begin=begin,
+        end=end,
         refresh_rate=2,  # Set your desired refresh rate
     )
 )
